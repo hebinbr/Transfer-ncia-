@@ -1,0 +1,10 @@
+{
+  "name": "AirShare - Transferência iPhone & PC",
+  "description": "Compartilhe qualquer tipo de arquivo entre iPhone e Computador na mesma rede com conexão instantânea via QR Code e login Google.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
