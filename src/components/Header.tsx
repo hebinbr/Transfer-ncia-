@@ -9,8 +9,11 @@ import {
   Copy,
   Clock,
   ArrowLeftRight,
+  Bell,
+  BellOff,
 } from 'lucide-react';
 import { UserAccount, DevicePeer } from '../types';
+import { NotificationPermissionState } from '../utils/notificationManager';
 
 interface HeaderProps {
   currentDevice: {
@@ -23,6 +26,8 @@ interface HeaderProps {
   peerCount: number;
   historyCount: number;
   activeTab: 'transfer' | 'history';
+  notificationPermission: NotificationPermissionState;
+  onOpenNotificationModal: () => void;
   onTabChange: (tab: 'transfer' | 'history') => void;
   onOpenQrModal: () => void;
   onOpenScannerModal: () => void;
@@ -37,6 +42,8 @@ export const Header: React.FC<HeaderProps> = ({
   peerCount,
   historyCount,
   activeTab,
+  notificationPermission,
+  onOpenNotificationModal,
   onTabChange,
   onOpenQrModal,
   onOpenScannerModal,
@@ -167,6 +174,37 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Clock className="w-3.5 h-3.5" />
             <span className="font-mono text-[11px]">{historyCount}</span>
+          </button>
+
+          {/* Browser Notification Button */}
+          <button
+            onClick={onOpenNotificationModal}
+            className={`relative flex items-center justify-center p-2 rounded-lg border transition-all active:scale-95 ${
+              notificationPermission === 'granted'
+                ? 'bg-slate-900 border-indigo-500/40 text-indigo-400 hover:text-indigo-300 hover:border-indigo-400'
+                : notificationPermission === 'denied'
+                ? 'bg-slate-900 border-rose-500/40 text-rose-400 hover:text-rose-300 hover:border-rose-400'
+                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+            }`}
+            title={
+              notificationPermission === 'granted'
+                ? 'Notificações ativadas para quando a aba estiver em segundo plano (clique para testar)'
+                : notificationPermission === 'denied'
+                ? 'Notificações bloqueadas pelo navegador (clique para ajuda)'
+                : 'Ativar alertas de transferência em segundo plano'
+            }
+          >
+            {notificationPermission === 'denied' ? (
+              <BellOff className="w-4 h-4" />
+            ) : (
+              <Bell className="w-4 h-4" />
+            )}
+            {notificationPermission === 'granted' && (
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-slate-950" />
+            )}
+            {notificationPermission === 'default' && (
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400 animate-pulse ring-2 ring-slate-950" />
+            )}
           </button>
 
           {/* QR Code Button */}

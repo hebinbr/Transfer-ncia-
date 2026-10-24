@@ -25,6 +25,15 @@ import { QrCodeModal } from './components/QrCodeModal';
 import { CameraScannerModal } from './components/CameraScannerModal';
 import { GoogleAuthModal } from './components/GoogleAuthModal';
 import { FilePreviewModal } from './components/FilePreviewModal';
+import { NotificationModal } from './components/NotificationModal';
+import { NotificationBanner } from './components/NotificationBanner';
+import {
+  NotificationPermissionState,
+  getNotificationPermission,
+  notifyReceivedFiles,
+  notifyReceivedPackage,
+  sendBackgroundNotification,
+} from './utils/notificationManager';
 import {
   detectDevice,
   getOrCreateDeviceId,
@@ -127,6 +136,24 @@ export default function App() {
   const [previewFile, setPreviewFile] = useState<SharedFileItem | null>(null);
   const [isSwitchRoomOpen, setIsSwitchRoomOpen] = useState(false);
   const [customRoomInput, setCustomRoomInput] = useState('');
+
+  // Notification API state
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionState>(() =>
+    getNotificationPermission()
+  );
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handlePermissionSync = () => {
+      setNotificationPermission(getNotificationPermission());
+    };
+    window.addEventListener('focus', handlePermissionSync);
+    document.addEventListener('visibilitychange', handlePermissionSync);
+    return () => {
+      window.removeEventListener('focus', handlePermissionSync);
+      document.removeEventListener('visibilitychange', handlePermissionSync);
+    };
+  }, []);
 
   // Audio tone on file/package arrival
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -238,6 +265,8 @@ export default function App() {
           setFiles(prev => [...data.files, ...prev]);
           if (data.senderId !== deviceId) {
             playChime();
+            // Trigger browser Notification API if tab is in background
+            notifyReceivedFiles(data.files, data.files[0]?.senderName || 'Dispositivo');
             // Record received files in history
             data.files.forEach((f: SharedFileItem) => {
               handleRecordTransfer({
@@ -267,6 +296,8 @@ export default function App() {
           setPackages(prev => [data.package, ...prev]);
           if (data.package.senderId !== deviceId) {
             playChime();
+            // Trigger browser Notification API if tab is in background
+            notifyReceivedPackage(data.package);
             // Record received package in history
             handleRecordTransfer({
               name: data.package.name,
@@ -303,6 +334,14 @@ export default function App() {
         const data = JSON.parse(e.data);
         if (data.item) {
           setTexts(prev => [data.item, ...prev]);
+          if (data.item.senderId !== deviceId) {
+            playChime();
+            sendBackgroundNotification({
+              title: '💬 Texto compartilhado recebido',
+              body: `${data.item.senderName}: "${data.item.text.slice(0, 80)}${data.item.text.length > 80 ? '...' : ''}"`,
+              tag: `text-${data.item.id}`,
+            });
+          }
         }
       } catch (err) {
         console.error('Error parsing text-added:', err);
@@ -393,6 +432,8 @@ export default function App() {
         peerCount={peers.length}
         historyCount={transferHistory.length}
         activeTab={activeTab}
+        notificationPermission={notificationPermission}
+        onOpenNotificationModal={() => setIsNotificationModalOpen(true)}
         onTabChange={setActiveTab}
         onOpenQrModal={() => setIsQrModalOpen(true)}
         onOpenScannerModal={() => setIsScannerModalOpen(true)}
@@ -401,6 +442,13 @@ export default function App() {
           setCustomRoomInput(roomCode);
           setIsSwitchRoomOpen(true);
         }}
+      />
+
+      {/* Gentle Banner for Browser Notification Permission */}
+      <NotificationBanner
+        permissionState={notificationPermission}
+        onPermissionChange={setNotificationPermission}
+        onOpenSettings={() => setIsNotificationModalOpen(true)}
       />
 
       {/* Main Container */}
@@ -676,6 +724,14 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Browser Notification API Modal */}
+      <NotificationModal
+        isOpen={isNotificationModalOpen}
+        onClose={() => setIsNotificationModalOpen(false)}
+        permissionState={notificationPermission}
+        onPermissionChange={setNotificationPermission}
+      />
     </div>
   );
 }
