@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { X, Download, FileText, ExternalLink, FolderDown, Check, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Download, FileText, ExternalLink, FolderDown, Check, Loader2, Database } from 'lucide-react';
 import { SharedFileItem } from '../types';
 import { formatBytes, getFileCategory } from '../utils/formatters';
 import { saveToIOSFiles, isIOS } from '../utils/iosFileSaver';
+import { getCachedFileBlob } from '../utils/indexedDbCache';
 
 interface FilePreviewModalProps {
   file: SharedFileItem | null;
@@ -12,11 +13,34 @@ interface FilePreviewModalProps {
 export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClose }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [cachedBlobUrl, setCachedBlobUrl] = useState<string | null>(null);
+  const [isOfflineBlob, setIsOfflineBlob] = useState(false);
+
+  useEffect(() => {
+    if (!file) return;
+    let active = true;
+    let objectUrl: string | null = null;
+
+    getCachedFileBlob(file.id).then(blob => {
+      if (active && blob) {
+        objectUrl = URL.createObjectURL(blob);
+        setCachedBlobUrl(objectUrl);
+        setIsOfflineBlob(true);
+      }
+    });
+
+    return () => {
+      active = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [file?.id]);
 
   if (!file) return null;
 
   const { category, label } = getFileCategory(file.mimetype, file.filename);
-  const fileUrl = `/api/download/${file.id}?inline=true`;
+  const fileUrl = cachedBlobUrl || `/api/download/${file.id}?inline=true`;
 
   const handleSaveToFiles = async () => {
     setIsSaving(true);
@@ -44,9 +68,22 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ file, onClos
             <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-lg" title={file.filename}>
               {file.filename}
             </h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400">
-              {formatBytes(file.size)} · {label} · Enviado por {file.senderName}
-            </p>
+            <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+              <span>{formatBytes(file.size)}</span>
+              <span>·</span>
+              <span>{label}</span>
+              <span>·</span>
+              <span>Enviado por {file.senderName}</span>
+              {isOfflineBlob && (
+                <>
+                  <span>·</span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/20 px-1.5 py-0.2 rounded-full">
+                    <Database className="w-2.5 h-2.5" />
+                    <span>Cache Offline</span>
+                  </span>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">

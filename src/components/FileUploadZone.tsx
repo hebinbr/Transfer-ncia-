@@ -18,6 +18,7 @@ import {
 import confetti from 'canvas-confetti';
 import { TransferProgress } from '../types';
 import { formatBytes, getFileCategory } from '../utils/formatters';
+import { isIOS, isAndroid } from '../utils/iosFileSaver';
 
 interface FileUploadZoneProps {
   roomCode: string;
@@ -56,6 +57,8 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [customPackageName, setCustomPackageName] = useState('');
   const [asSinglePackage, setAsSinglePackage] = useState(true);
+  const [isIOSDevice] = useState(() => isIOS());
+  const [isAndroidDevice] = useState(() => isAndroid());
 
   // Upload progress states
   const [isUploading, setIsUploading] = useState(false);
@@ -365,9 +368,12 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
             photoLibraryInputRef.current?.click();
           }}
           className="flex flex-col sm:flex-row items-center justify-center gap-1.5 p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 hover:border-slate-400 text-slate-800 dark:bg-slate-950/80 dark:hover:bg-slate-800 dark:border-slate-800 dark:hover:border-slate-700 dark:text-slate-200 transition-all text-xs font-semibold active:scale-95 shadow-xs dark:shadow-none"
+          title={isAndroidDevice ? 'Galeria do Android' : isIOSDevice ? 'Fototeca do iPhone' : 'Galeria de Fotos'}
         >
           <Image className="w-4 h-4 text-sky-600 dark:text-sky-400" />
-          <span className="text-[11px] sm:text-xs">Fototeca iPhone</span>
+          <span className="text-[11px] sm:text-xs">
+            {isAndroidDevice ? 'Galeria / Fotos' : isIOSDevice ? 'Fototeca iPhone' : 'Fotos e Imagens'}
+          </span>
         </button>
 
         <button

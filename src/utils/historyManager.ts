@@ -1,4 +1,11 @@
 import { TransferHistoryItem } from '../types';
+import {
+  saveHistoryToIndexedDB,
+  saveHistoryItemToIndexedDB,
+  removeHistoryItemFromIndexedDB,
+  clearHistoryInIndexedDB,
+  getHistoryFromIndexedDB,
+} from './indexedDbCache';
 
 const STORAGE_KEY = 'airshare_transfer_history';
 
@@ -151,6 +158,8 @@ export function getTransferHistory(): TransferHistoryItem[] {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (!stored) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_HISTORY));
+    // Seed IndexedDB asynchronously
+    saveHistoryToIndexedDB(SEED_HISTORY).catch(() => {});
     return SEED_HISTORY;
   }
   try {
@@ -158,11 +167,32 @@ export function getTransferHistory(): TransferHistoryItem[] {
     // If user has old 5-item seed without older days, seed with full 7-day rich history
     if (Array.isArray(parsed) && parsed.length <= 5 && parsed[0]?.id?.startsWith('hist_seed_')) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_HISTORY));
+      saveHistoryToIndexedDB(SEED_HISTORY).catch(() => {});
       return SEED_HISTORY;
     }
     return parsed;
   } catch {
     return [];
+  }
+}
+
+/**
+ * Loads history from IndexedDB, falling back to localStorage if IndexedDB is empty.
+ */
+export async function syncHistoryWithIndexedDB(): Promise<TransferHistoryItem[]> {
+  try {
+    const idbItems = await getHistoryFromIndexedDB();
+    if (idbItems && idbItems.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(idbItems));
+      return idbItems;
+    }
+    const localItems = getTransferHistory();
+    if (localItems && localItems.length > 0) {
+      await saveHistoryToIndexedDB(localItems);
+    }
+    return localItems;
+  } catch {
+    return getTransferHistory();
   }
 }
 
@@ -195,18 +225,24 @@ export function addTransferHistoryItem(
   } catch (err) {
     console.error('Failed to save transfer history:', err);
   }
+
+  // Persist to IndexedDB
+  saveHistoryItemToIndexedDB(newItem).catch(() => {});
+
   return newItem;
 }
 
 export function clearTransferHistory(): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+  clearHistoryInIndexedDB().catch(() => {});
 }
 
 export function removeTransferHistoryItem(id: string): void {
   const current = getTransferHistory();
   const updated = current.filter(item => item.id !== id);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  removeHistoryItemFromIndexedDB(id).catch(() => {});
 }
 
 export interface DateGroupedHistory {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Download,
   Eye,
@@ -21,10 +21,12 @@ import {
   FolderDown,
   Loader2,
   Info,
+  Database,
 } from 'lucide-react';
 import { SharedFileItem, SharedPackageItem } from '../types';
 import { formatBytes, formatRelativeTime, getFileCategory, FileCategory } from '../utils/formatters';
-import { isIOS, saveToIOSFiles, saveZipPackageToIOS, triggerHapticFeedback } from '../utils/iosFileSaver';
+import { isIOS, isAndroid, saveToIOSFiles, saveZipPackageToIOS, triggerHapticFeedback } from '../utils/iosFileSaver';
+import { getCachedFiles, isIndexedDBSupported } from '../utils/indexedDbCache';
 
 interface FileListProps {
   files: SharedFileItem[];
@@ -48,9 +50,20 @@ export const FileList: React.FC<FileListProps> = ({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedPackageIds, setExpandedPackageIds] = useState<Set<string>>(new Set());
   const [isAppleDevice] = useState(() => isIOS());
+  const [isAndroidDevice] = useState(() => isAndroid());
+  const [guideTab, setGuideTab] = useState<'android' | 'ios'>(() => (isAndroid() ? 'android' : 'ios'));
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedSuccessId, setSavedSuccessId] = useState<string | null>(null);
-  const [showIosGuide, setShowIosGuide] = useState(false);
+  const [showDeviceGuide, setShowDeviceGuide] = useState(false);
+  const [cachedFileIds, setCachedFileIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (isIndexedDBSupported()) {
+      getCachedFiles().then(items => {
+        setCachedFileIds(new Set(items.map(i => i.id)));
+      });
+    }
+  }, [files]);
 
   const handleSaveFileToFiles = async (file: SharedFileItem) => {
     setSavingId(file.id);
@@ -207,58 +220,126 @@ export const FileList: React.FC<FileListProps> = ({
         ))}
       </div>
 
-      {/* iOS Files Support Banner & Guide */}
-      <div className="mb-3.5 p-3 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 text-xs transition-colors">
+      {/* Multi-platform Android & iOS Support Banner & Guide */}
+      <div className="mb-3.5 p-3 rounded-xl bg-gradient-to-r from-sky-50 via-indigo-50 to-emerald-50 dark:from-slate-900/90 dark:via-indigo-950/30 dark:to-emerald-950/30 border border-slate-300 dark:border-slate-800 text-xs transition-colors shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 shadow-xs text-white ${
+              isAndroidDevice ? 'bg-emerald-600' : 'bg-sky-600'
+            }`}>
               <FolderDown className="w-4 h-4" />
             </div>
             <div>
-              <p className="font-bold text-slate-950 dark:text-sky-100 flex items-center gap-1.5">
-                <span>Salvando no iPhone (App Arquivos)</span>
+              <p className="font-bold text-slate-950 dark:text-white flex items-center gap-1.5 flex-wrap">
+                <span>
+                  {isAndroidDevice
+                    ? 'Salvando no Android (Downloads & Galeria)'
+                    : isAppleDevice
+                    ? 'Salvando no iPhone (App Arquivos)'
+                    : 'Transferência Rápida para Celulares & PCs'}
+                </span>
+                {isAndroidDevice && (
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 px-1.5 py-0.2 rounded font-semibold">
+                    🤖 Android detectado
+                  </span>
+                )}
                 {isAppleDevice && (
-                  <span className="text-[10px] bg-sky-200 dark:bg-sky-500/30 text-sky-900 dark:text-sky-200 px-1.5 py-0.2 rounded font-semibold">
-                    iPhone detectado
+                  <span className="text-[10px] bg-sky-100 text-sky-800 border border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30 px-1.5 py-0.2 rounded font-semibold">
+                    🍏 iPhone detectado
                   </span>
                 )}
               </p>
-              <p className="text-[11px] text-slate-600 dark:text-sky-300">
-                Toque no botão azul <strong className="text-sky-700 dark:text-sky-200">"Salvar em Arquivos"</strong> para enviar diretamente ao app Arquivos ou Fotos do iOS.
+              <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                {isAndroidDevice
+                  ? 'Compatível com Samsung, Motorola, Xiaomi e Pixel. Salva na pasta Downloads ou compartilha nativamente.'
+                  : 'Toque no botão "Salvar" para gravar no dispositivo ou enviar ao app Arquivos/Galeria.'}
               </p>
             </div>
           </div>
           <button
             type="button"
-            onClick={() => setShowIosGuide(!showIosGuide)}
-            className="text-[11px] font-semibold text-sky-700 dark:text-sky-400 hover:text-sky-900 dark:hover:text-sky-200 flex items-center gap-1 self-start sm:self-auto shrink-0 transition-colors"
+            onClick={() => setShowDeviceGuide(!showDeviceGuide)}
+            className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-200 flex items-center gap-1 self-start sm:self-auto shrink-0 transition-colors"
           >
             <Info className="w-3.5 h-3.5" />
-            <span>{showIosGuide ? 'Ocultar passo a passo' : 'Como salvar no iPhone?'}</span>
+            <span>{showDeviceGuide ? 'Ocultar instruções' : 'Como salvar no Android & iPhone?'}</span>
           </button>
         </div>
 
-        {/* Expandable step-by-step iOS instructions */}
-        {showIosGuide && (
-          <div className="mt-3 pt-3 border-t border-sky-200/80 dark:border-sky-800/60 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
-            <div className="p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-sky-200/50 dark:border-sky-800/40">
-              <span className="font-bold text-sky-600 dark:text-sky-400 block mb-0.5">Passo 1: Toque no Botão</span>
-              <p className="text-slate-600 dark:text-slate-400">
-                Toque em <strong>"Salvar em Arquivos"</strong> no arquivo individual ou pacote recebido.
-              </p>
+        {/* Expandable step-by-step instructions with Android / iPhone tabs */}
+        {showDeviceGuide && (
+          <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/80 space-y-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Escolha o sistema:</span>
+              <div className="inline-flex rounded-lg p-0.5 bg-slate-200 dark:bg-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setGuideTab('android')}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
+                    guideTab === 'android'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  🤖 Android
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGuideTab('ios')}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
+                    guideTab === 'ios'
+                      ? 'bg-sky-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  🍏 iPhone / iPad
+                </button>
+              </div>
             </div>
-            <div className="p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-sky-200/50 dark:border-sky-800/40">
-              <span className="font-bold text-sky-600 dark:text-sky-400 block mb-0.5">Passo 2: Menu Nativo do iOS</span>
-              <p className="text-slate-600 dark:text-slate-400">
-                O menu nativo do iOS abrirá. Selecione a opção <strong>"Salvar em Arquivos"</strong> (ícone da pasta azul) ou <strong>"Salvar Imagem"</strong>.
-              </p>
-            </div>
-            <div className="p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-sky-200/50 dark:border-sky-800/40">
-              <span className="font-bold text-sky-600 dark:text-sky-400 block mb-0.5">Passo 3: Escolha a Pasta</span>
-              <p className="text-slate-600 dark:text-slate-400">
-                Escolha a pasta no seu iPhone (ex: <em>Downloads</em> ou <em>iCloud Drive</em>) e confirme em <strong>Salvar</strong>.
-              </p>
-            </div>
+
+            {guideTab === 'android' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                <div className="p-2.5 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-emerald-200/60 dark:border-emerald-800/40">
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400 block mb-0.5">1. Toque em "Salvar"</span>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Toque no botão <strong className="text-slate-800 dark:text-slate-200">"Salvar no Dispositivo"</strong> ou no ícone de download direto.
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-emerald-200/60 dark:border-emerald-800/40">
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400 block mb-0.5">2. Pasta Downloads & Notificação</span>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    O Android baixa instantaneamente para a pasta <strong className="text-slate-800 dark:text-slate-200">Downloads</strong>, visível pelo app <em>Files do Google</em> ou <em>Meus Arquivos</em> da Samsung.
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-emerald-200/60 dark:border-emerald-800/40">
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400 block mb-0.5">3. Galeria & Compartilhamento</span>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Fotos e vídeos aparecem na Galeria / Google Fotos. Pelo menu nativo você pode enviar direto para WhatsApp ou Google Drive.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                <div className="p-2.5 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-sky-200/60 dark:border-sky-800/40">
+                  <span className="font-bold text-sky-700 dark:text-sky-400 block mb-0.5">1. Toque em "Salvar em Arquivos"</span>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Toque no botão azul <strong className="text-slate-800 dark:text-slate-200">"Salvar em Arquivos"</strong> no arquivo ou pacote recebido.
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-sky-200/60 dark:border-sky-800/40">
+                  <span className="font-bold text-sky-700 dark:text-sky-400 block mb-0.5">2. Folha Nativa do iOS</span>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    O menu nativo do iOS abrirá. Escolha <strong className="text-slate-800 dark:text-slate-200">"Salvar em Arquivos"</strong> (ícone da pasta azul) ou "Salvar Imagem".
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-sky-200/60 dark:border-sky-800/40">
+                  <span className="font-bold text-sky-700 dark:text-sky-400 block mb-0.5">3. Escolha a Pasta</span>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Escolha a pasta no seu iPhone (ex: <em>Downloads</em> ou <em>No Meu iPhone</em>) e confirme em <strong>Salvar</strong>.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -326,7 +407,7 @@ export const FileList: React.FC<FileListProps> = ({
                       )}
                     </button>
 
-                    {/* Salvar pacote direto no App Arquivos do iOS */}
+                    {/* Salvar pacote direto no dispositivo (Android / iOS) */}
                     <button
                       type="button"
                       onClick={() => handleSavePackageToFiles(pkg)}
@@ -334,9 +415,17 @@ export const FileList: React.FC<FileListProps> = ({
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm ${
                         savedSuccessId === pkg.id
                           ? 'bg-emerald-600 text-white'
+                          : isAndroidDevice
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 active:scale-95'
                           : 'bg-sky-600 hover:bg-sky-700 text-white shadow-sky-600/20 active:scale-95'
                       }`}
-                      title="Salvar no app Arquivos do iPhone (expande pastas nativamente)"
+                      title={
+                        isAndroidDevice
+                          ? 'Salvar pacote no Android (Downloads / Compartilhar)'
+                          : isAppleDevice
+                          ? 'Salvar no app Arquivos do iPhone (expande pastas nativamente)'
+                          : 'Salvar no Dispositivo'
+                      }
                     >
                       {savingId === pkg.id ? (
                         <>
@@ -351,7 +440,13 @@ export const FileList: React.FC<FileListProps> = ({
                       ) : (
                         <>
                           <FolderDown className="w-3.5 h-3.5" />
-                          <span>Salvar em Arquivos</span>
+                          <span>
+                            {isAndroidDevice
+                              ? 'Salvar no Celular'
+                              : isAppleDevice
+                              ? 'Salvar em Arquivos'
+                              : 'Salvar no Dispositivo'}
+                          </span>
                         </>
                       )}
                     </button>
@@ -408,6 +503,12 @@ export const FileList: React.FC<FileListProps> = ({
                               <span className="text-slate-500 font-mono text-[11px] shrink-0 font-medium">
                                 ({formatBytes(file.size)})
                               </span>
+                              {cachedFileIds.has(file.id) && (
+                                <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-1 rounded shrink-0" title="Salvo em cache local IndexedDB">
+                                  <Database className="w-2.5 h-2.5" />
+                                  <span>Offline</span>
+                                </span>
+                              )}
                             </div>
 
                             <div className="flex items-center gap-1.5 shrink-0">
@@ -517,6 +618,18 @@ export const FileList: React.FC<FileListProps> = ({
                       </span>
                       <span>·</span>
                       <span>{formatRelativeTime(file.createdAt)}</span>
+                      {cachedFileIds.has(file.id) && (
+                        <>
+                          <span>·</span>
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/20 px-1.5 py-0.2 rounded"
+                            title="Arquivo salvo no IndexedDB local (disponível sem servidor)"
+                          >
+                            <Database className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                            <span>Cache Offline</span>
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -549,7 +662,7 @@ export const FileList: React.FC<FileListProps> = ({
                     </span>
                   </button>
 
-                  {/* Salvar diretamente no app Arquivos do iPhone */}
+                  {/* Salvar diretamente no Android / iPhone */}
                   <button
                     type="button"
                     onClick={() => handleSaveFileToFiles(file)}
@@ -557,11 +670,19 @@ export const FileList: React.FC<FileListProps> = ({
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 ${
                       savedSuccessId === file.id
                         ? 'bg-emerald-600 text-white'
+                        : isAndroidDevice
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/25 ring-2 ring-emerald-400/40'
                         : isAppleDevice
                         ? 'bg-sky-600 hover:bg-sky-700 text-white shadow-sky-600/25 ring-2 ring-sky-400/50'
                         : 'bg-sky-600 hover:bg-sky-700 text-white shadow-sky-600/20'
                     }`}
-                    title="Salvar direto no app Arquivos do iPhone / iOS"
+                    title={
+                      isAndroidDevice
+                        ? 'Salvar no Android (Downloads / Compartilhar nativo)'
+                        : isAppleDevice
+                        ? 'Salvar direto no app Arquivos do iPhone / iOS'
+                        : 'Salvar no Dispositivo'
+                    }
                   >
                     {savingId === file.id ? (
                       <>
@@ -576,7 +697,13 @@ export const FileList: React.FC<FileListProps> = ({
                     ) : (
                       <>
                         <FolderDown className="w-3.5 h-3.5" />
-                        <span>Salvar em Arquivos</span>
+                        <span>
+                          {isAndroidDevice
+                            ? 'Salvar no Celular'
+                            : isAppleDevice
+                            ? 'Salvar em Arquivos'
+                            : 'Salvar no Dispositivo'}
+                        </span>
                       </>
                     )}
                   </button>

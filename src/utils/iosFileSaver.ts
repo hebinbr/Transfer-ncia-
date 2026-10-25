@@ -1,3 +1,5 @@
+import { getCachedFileBlob, cacheFileBlob } from './indexedDbCache';
+
 /**
  * iOS Files & Storage helper
  * Facilitates saving files directly into the native Apple iOS "Arquivos" (Files app)
@@ -14,6 +16,12 @@ export function isIOS(): boolean {
     (platformStr === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   return isIOSDevice;
+}
+
+export function isAndroid(): boolean {
+  if (typeof window === 'undefined') return false;
+  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera || '';
+  return /Android/.test(userAgent);
 }
 
 /**
@@ -51,6 +59,7 @@ export interface SaveResult {
  * Uses navigator.share with File payload to summon the native iOS action sheet
  * which features the "Salvar em Arquivos" (Save to Files) option.
  * Falls back to direct blob download trigger for Safari's download manager.
+ * Supports offline retrieval from IndexedDB if server is unreachable.
  */
 export async function saveToIOSFiles(options: SaveOptions): Promise<SaveResult> {
   const { url, filename, mimetype, totalSize, onProgress } = options;
@@ -58,48 +67,78 @@ export async function saveToIOSFiles(options: SaveOptions): Promise<SaveResult> 
   // Trigger short tactile feedback when user initiates saving
   triggerHapticFeedback(45);
 
+  let fileId = '';
+  if (url.includes('/api/download/')) {
+    fileId = url.split('/api/download/')[1].split('?')[0];
+  } else if (url.includes('/api/packages/') && url.includes('/zip')) {
+    fileId = `pkg_zip_${url.split('/api/packages/')[1].split('/zip')[0]}`;
+  }
+
   try {
-    // 1. Fetch file with real stream reading for download percentage
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Falha ao obter arquivo: ${response.statusText}`);
-    }
+    let blob: Blob | null = null;
 
-    let blob: Blob;
-    const contentLength = response.headers.get('content-length');
-    const headerBytes = contentLength ? parseInt(contentLength, 10) : 0;
-    const expectedTotal = headerBytes > 0 ? headerBytes : (totalSize || 0);
+    try {
+      // 1. Fetch file with real stream reading for download percentage
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Falha ao obter arquivo: ${response.statusText}`);
+      }
 
-    if (response.body && typeof ReadableStream !== 'undefined') {
-      const reader = response.body.getReader();
-      let receivedBytes = 0;
-      const chunks: Uint8Array[] = [];
+      const contentLength = response.headers.get('content-length');
+      const headerBytes = contentLength ? parseInt(contentLength, 10) : 0;
+      const expectedTotal = headerBytes > 0 ? headerBytes : (totalSize || 0);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-          chunks.push(value);
-          receivedBytes += value.length;
-          if (expectedTotal > 0 && onProgress) {
-            const percent = Math.min(Math.round((receivedBytes / expectedTotal) * 100), 99);
-            onProgress(percent, receivedBytes, expectedTotal);
-          } else if (onProgress) {
-            // If total is unknown, provide smooth progression
-            onProgress(Math.min(90, Math.round(receivedBytes / 1024)), receivedBytes, 0);
+      if (response.body && typeof ReadableStream !== 'undefined') {
+        const reader = response.body.getReader();
+        let receivedBytes = 0;
+        const chunks: Uint8Array[] = [];
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) {
+            chunks.push(value);
+            receivedBytes += value.length;
+            if (expectedTotal > 0 && onProgress) {
+              const percent = Math.min(Math.round((receivedBytes / expectedTotal) * 100), 99);
+              onProgress(percent, receivedBytes, expectedTotal);
+            } else if (onProgress) {
+              onProgress(Math.min(90, Math.round(receivedBytes / 1024)), receivedBytes, 0);
+            }
           }
+        }
+
+        const resolvedType = mimetype || response.headers.get('content-type') || 'application/octet-stream';
+        blob = new Blob(chunks as any[], { type: resolvedType });
+        if (onProgress) {
+          onProgress(100, receivedBytes, expectedTotal || receivedBytes);
+        }
+      } else {
+        blob = await response.blob();
+        if (onProgress) {
+          onProgress(100, blob.size, blob.size);
         }
       }
 
-      const resolvedType = mimetype || response.headers.get('content-type') || 'application/octet-stream';
-      blob = new Blob(chunks as any[], { type: resolvedType });
-      if (onProgress) {
-        onProgress(100, receivedBytes, expectedTotal || receivedBytes);
+      // Automatically store in IndexedDB cache for offline access
+      if (fileId && blob) {
+        cacheFileBlob(fileId, blob, {
+          filename,
+          mimetype: mimetype || blob.type,
+          size: blob.size,
+        }).catch(() => {});
       }
-    } else {
-      blob = await response.blob();
-      if (onProgress) {
-        onProgress(100, blob.size, blob.size);
+    } catch (networkErr) {
+      // Fallback: Check if file was previously cached in IndexedDB
+      if (fileId) {
+        const cached = await getCachedFileBlob(fileId);
+        if (cached) {
+          blob = cached;
+          if (onProgress) onProgress(100, cached.size, cached.size);
+        }
+      }
+      if (!blob) {
+        throw networkErr;
       }
     }
 

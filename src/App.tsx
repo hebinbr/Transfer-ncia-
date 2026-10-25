@@ -16,8 +16,19 @@ import {
   AlertTriangle,
   FolderDown,
   Loader2,
+  Database,
+  WifiOff,
 } from 'lucide-react';
 import { isIOS, saveToIOSFiles, saveZipPackageToIOS, triggerHapticFeedback } from './utils/iosFileSaver';
+import {
+  autoCacheReceivedFile,
+  cachePackage,
+  getCachedFiles,
+  getCachedPackages,
+  removeCachedFile,
+  removeCachedPackage,
+  isIndexedDBSupported,
+} from './utils/indexedDbCache';
 import { Header } from './components/Header';
 import { PeerRadar } from './components/PeerRadar';
 import { FileUploadZone } from './components/FileUploadZone';
@@ -45,6 +56,7 @@ import {
 } from './utils/deviceDetector';
 import {
   getTransferHistory,
+  syncHistoryWithIndexedDB,
   addTransferHistoryItem,
   clearTransferHistory,
   removeTransferHistoryItem,
@@ -199,6 +211,57 @@ export default function App() {
     }
   };
 
+  // Online / Server connectivity status
+  const [isOnline, setIsOnline] = useState<boolean>(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+  const [isServerConnected, setIsServerConnected] = useState<boolean>(true);
+
+  // Monitor network online/offline events
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Sync transfer history and load cached files from IndexedDB on startup
+  useEffect(() => {
+    syncHistoryWithIndexedDB().then(items => {
+      if (items && items.length > 0) {
+        setTransferHistory(items);
+      }
+    });
+
+    if (isIndexedDBSupported()) {
+      getCachedFiles().then(cachedFiles => {
+        if (cachedFiles && cachedFiles.length > 0) {
+          setFiles(prev => {
+            const map = new Map<string, SharedFileItem>();
+            cachedFiles.forEach(f => map.set(f.id, f));
+            prev.forEach(f => map.set(f.id, f));
+            return Array.from(map.values()).sort((a, b) => b.createdAt - a.createdAt);
+          });
+        }
+      });
+
+      getCachedPackages().then(cachedPkgs => {
+        if (cachedPkgs && cachedPkgs.length > 0) {
+          setPackages(prev => {
+            const map = new Map<string, SharedPackageItem>();
+            cachedPkgs.forEach(p => map.set(p.id, p));
+            prev.forEach(p => map.set(p.id, p));
+            return Array.from(map.values()).sort((a, b) => b.createdAt - a.createdAt);
+          });
+        }
+      });
+    }
+  }, []);
+
   useEffect(() => {
     const handlePermissionSync = () => {
       setNotificationPermission(getNotificationPermission());
@@ -285,18 +348,32 @@ export default function App() {
     const eventSource = new EventSource(`/api/events?${params.toString()}`);
 
     eventSource.addEventListener('connected', (e: MessageEvent) => {
+      setIsServerConnected(true);
       try {
         const data = JSON.parse(e.data);
         if (data.peers) setPeers(data.peers);
-        if (data.files) setFiles(data.files.reverse());
-        if (data.packages) setPackages(data.packages.reverse());
+        if (data.files) {
+          setFiles(data.files.reverse());
+          // Auto-cache files into IndexedDB for offline view
+          data.files.forEach((f: SharedFileItem) => autoCacheReceivedFile(f));
+        }
+        if (data.packages) {
+          setPackages(data.packages.reverse());
+          // Auto-cache packages into IndexedDB for offline view
+          data.packages.forEach((p: SharedPackageItem) => cachePackage(p));
+        }
         if (data.texts) setTexts(data.texts.reverse());
       } catch (err) {
         console.error('Error parsing connected event:', err);
       }
     });
 
+    eventSource.onerror = () => {
+      setIsServerConnected(false);
+    };
+
     eventSource.addEventListener('peer-joined', (e: MessageEvent) => {
+      setIsServerConnected(true);
       try {
         const data = JSON.parse(e.data);
         if (data.peers) setPeers(data.peers);
@@ -319,6 +396,8 @@ export default function App() {
         const data = JSON.parse(e.data);
         if (data.files) {
           setFiles(prev => [...data.files, ...prev]);
+          // Cache received files in IndexedDB
+          data.files.forEach((f: SharedFileItem) => autoCacheReceivedFile(f));
           if (data.senderId !== deviceId) {
             playChime();
             // Trigger browser Notification API if tab is in background
@@ -364,6 +443,11 @@ export default function App() {
         const data = JSON.parse(e.data);
         if (data.package) {
           setPackages(prev => [data.package, ...prev]);
+          // Cache package and its files in IndexedDB for offline view
+          cachePackage(data.package).catch(() => {});
+          if (data.package.files) {
+            data.package.files.forEach((f: SharedFileItem) => autoCacheReceivedFile(f));
+          }
           if (data.package.senderId !== deviceId) {
             playChime();
             // Trigger browser Notification API if tab is in background
@@ -482,19 +566,21 @@ export default function App() {
   const handleDeleteFile = async (fileId: string) => {
     try {
       await fetch(`/api/files/${fileId}`, { method: 'DELETE' });
-      setFiles(prev => prev.filter(f => f.id !== fileId));
     } catch (err) {
-      console.error('Failed to delete file:', err);
+      console.warn('Server delete failed, removing locally:', err);
     }
+    setFiles(prev => prev.filter(f => f.id !== fileId));
+    removeCachedFile(fileId).catch(() => {});
   };
 
   const handleDeletePackage = async (packageId: string) => {
     try {
       await fetch(`/api/packages/${packageId}`, { method: 'DELETE' });
-      setPackages(prev => prev.filter(p => p.id !== packageId));
     } catch (err) {
-      console.error('Failed to delete package:', err);
+      console.warn('Server delete package failed, removing locally:', err);
     }
+    setPackages(prev => prev.filter(p => p.id !== packageId));
+    removeCachedPackage(packageId).catch(() => {});
   };
 
   const targetPeer = peers.find(p => p.id === selectedTargetId);
@@ -531,6 +617,34 @@ export default function App() {
         onPermissionChange={setNotificationPermission}
         onOpenSettings={() => setIsNotificationModalOpen(true)}
       />
+
+      {/* Offline Mode Banner when disconnected from server or internet */}
+      {(!isOnline || !isServerConnected) && (
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-2 pb-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-2xl text-xs text-amber-900 dark:text-amber-200 shadow-sm transition-colors">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-200/80 dark:bg-amber-800/50 flex items-center justify-center shrink-0 text-amber-900 dark:text-amber-300 shadow-xs">
+                <Database className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="font-bold text-amber-950 dark:text-amber-100 flex items-center gap-2">
+                  <span>Modo Offline Ativo (Cache IndexedDB)</span>
+                  <span className="text-[10px] bg-amber-200 dark:bg-amber-800/60 text-amber-900 dark:text-amber-200 px-1.5 py-0.2 rounded font-semibold">
+                    {!isOnline ? 'Sem Internet' : 'Servidor Desconectado'}
+                  </span>
+                </p>
+                <p className="text-[11px] text-amber-800 dark:text-amber-300/80 font-medium">
+                  Você pode visualizar o histórico e os arquivos recebidos salvos no cache local do navegador.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 dark:text-amber-300 self-end sm:self-auto shrink-0 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-lg">
+              <WifiOff className="w-3.5 h-3.5" />
+              <span>Offline</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
@@ -820,7 +934,11 @@ export default function App() {
                 </div>
                 <div className="min-w-0">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">
-                    {deviceInfo.platform === 'iOS' ? '📱 Recebido no iPhone' : '📥 Arquivo Recebido'}
+                    {deviceInfo.platform === 'iOS'
+                      ? '📱 Recebido no iPhone'
+                      : deviceInfo.platform === 'Android'
+                      ? '🤖 Recebido no Android'
+                      : '📥 Arquivo Recebido'}
                   </span>
                   <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate" title={receivedAlert.title}>
                     {receivedAlert.title}
@@ -850,9 +968,15 @@ export default function App() {
                     ? 'animate-success-pop bg-emerald-600 text-white ring-4 ring-emerald-400/40 shadow-emerald-600/30'
                     : isAlertSaving
                     ? 'bg-sky-800 text-white cursor-wait ring-2 ring-sky-400/40 shadow-sky-700/30'
+                    : deviceInfo.platform === 'Android'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30 hover:shadow-emerald-600/40 ring-2 ring-emerald-400/30'
                     : 'bg-sky-600 hover:bg-sky-700 text-white shadow-sky-600/30 hover:shadow-sky-600/40 ring-2 ring-sky-400/30'
                 }`}
-                title="Salvar direto no app Arquivos com resposta tátil (navigator.vibrate)"
+                title={
+                  deviceInfo.platform === 'Android'
+                    ? 'Salvar no Android com resposta tátil (Downloads / Compartilhar)'
+                    : 'Salvar direto no app Arquivos com resposta tátil (navigator.vibrate)'
+                }
               >
                 {/* Visual Download Progress Bar Fill with smooth width transition */}
                 {isAlertSaving && alertDownloadProgress !== null && (
@@ -879,12 +1003,24 @@ export default function App() {
                       <span className="w-4 h-4 rounded-full bg-white/25 flex items-center justify-center shrink-0">
                         <Check className="w-3 h-3 text-white stroke-[3]" />
                       </span>
-                      <span className="font-bold">Salvo em Arquivos!</span>
+                      <span className="font-bold">
+                        {deviceInfo.platform === 'iOS'
+                          ? 'Salvo em Arquivos!'
+                          : deviceInfo.platform === 'Android'
+                          ? 'Salvo no Celular!'
+                          : 'Arquivo Salvo!'}
+                      </span>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-2 w-full">
                       <FolderDown className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform shrink-0" />
-                      <span>Salvar no App Arquivos</span>
+                      <span>
+                        {deviceInfo.platform === 'iOS'
+                          ? 'Salvar no App Arquivos'
+                          : deviceInfo.platform === 'Android'
+                          ? 'Salvar no Celular'
+                          : 'Salvar no Dispositivo'}
+                      </span>
                     </div>
                   )}
                 </div>
