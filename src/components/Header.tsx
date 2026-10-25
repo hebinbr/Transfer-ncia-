@@ -11,9 +11,12 @@ import {
   ArrowLeftRight,
   Bell,
   BellOff,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { UserAccount, DevicePeer } from '../types';
 import { NotificationPermissionState } from '../utils/notificationManager';
+import { useTheme } from '../context/ThemeContext';
 
 interface HeaderProps {
   currentDevice: {
@@ -50,6 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAuthModal,
   onSwitchRoom,
 }) => {
+  const { isDark, toggleTheme } = useTheme();
   const [copied, setCopied] = React.useState(false);
 
   const handleCopyRoom = () => {
@@ -59,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-4 sm:px-6 py-3.5">
+    <header className="sticky top-0 z-30 border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/80 backdrop-blur-md px-4 sm:px-6 py-3.5 transition-colors">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         {/* Zone 1: Brand Wordmark */}
         <div className="flex items-center gap-3 shrink-0">
@@ -80,10 +84,10 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-base sm:text-lg font-bold tracking-tight text-white whitespace-nowrap">
+              <span className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
                 AirShare
               </span>
-              <span className="hidden sm:inline-block text-[11px] font-medium text-indigo-400 bg-indigo-950/80 border border-indigo-800/60 rounded px-1.5 py-0.5">
+              <span className="hidden sm:inline-block text-[11px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 dark:text-indigo-400 dark:bg-indigo-950/80 dark:border-indigo-800/60 rounded px-1.5 py-0.5">
                 iPhone & PC
               </span>
             </div>
@@ -93,13 +97,13 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Zone 2: Navigation & Room Info */}
         <div className="hidden md:flex items-center gap-3">
           {/* Main View Segmented Control */}
-          <div className="flex items-center p-1 bg-slate-900/90 border border-slate-800 rounded-xl text-xs font-medium">
+          <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-medium">
             <button
               onClick={() => onTabChange('transfer')}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-colors ${
                 activeTab === 'transfer'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
               <ArrowLeftRight className="w-3.5 h-3.5" />
@@ -109,14 +113,14 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => onTabChange('history')}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-colors ${
                 activeTab === 'history'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
               <Clock className="w-3.5 h-3.5" />
               <span>Histórico</span>
               {historyCount > 0 && (
-                <span className="font-mono text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-200">
+                <span className="font-mono text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200 font-semibold">
                   {historyCount}
                 </span>
               )}
@@ -124,51 +128,51 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Room info */}
-          <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 rounded-lg px-3 py-1.5 text-xs">
-            <span className="text-slate-400">Sala:</span>
-            <span className="font-mono font-semibold text-indigo-300 tracking-wider">
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs">
+            <span className="text-slate-600 dark:text-slate-400 font-medium">Sala:</span>
+            <span className="font-mono font-bold text-indigo-600 dark:text-indigo-300 tracking-wider">
               {roomCode}
             </span>
             <button
               onClick={handleCopyRoom}
-              className="text-slate-400 hover:text-white transition-colors p-0.5"
+              className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors p-0.5"
               title="Copiar código da sala"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
-            <span className="text-slate-700">|</span>
+            <span className="text-slate-300 dark:text-slate-700">|</span>
             <button
               onClick={onSwitchRoom}
-              className="text-slate-400 hover:text-white transition-colors text-[11px] flex items-center gap-1"
+              className="text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-white transition-colors text-[11px] flex items-center gap-1 font-medium"
             >
               <RefreshCw className="w-3 h-3" />
               Trocar
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-slate-900/60 border border-slate-800/60 rounded-lg px-2.5 py-1.5">
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 bg-slate-100/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/60 rounded-lg px-2.5 py-1.5 font-medium">
             {currentDevice.type === 'mobile' ? (
-              <Smartphone className="w-3.5 h-3.5 text-sky-400" />
+              <Smartphone className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
             ) : (
-              <Laptop className="w-3.5 h-3.5 text-indigo-400" />
+              <Laptop className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
             )}
-            <span className="text-slate-300 max-w-[120px] truncate">{currentDevice.name}</span>
-            <span className="text-slate-600">·</span>
-            <span className="text-emerald-400 font-medium tabular-nums">
+            <span className="text-slate-800 dark:text-slate-300 max-w-[120px] truncate">{currentDevice.name}</span>
+            <span className="text-slate-400 dark:text-slate-600">·</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold tabular-nums">
               {peerCount} {peerCount === 1 ? 'dispositivo' : 'dispositivos'}
             </span>
           </div>
         </div>
 
-        {/* Zone 3: Actions (History toggle for mobile, QR Code, Scanner, Google Login) */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* Zone 3: Actions (Theme Toggle, Notifications, QR Code, Scanner, Google Login) */}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {/* Mobile History View Button */}
           <button
             onClick={() => onTabChange(activeTab === 'history' ? 'transfer' : 'history')}
-            className={`md:hidden flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+            className={`md:hidden flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
               activeTab === 'history'
                 ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20'
-                : 'bg-slate-900 border-slate-800 text-slate-300'
+                : 'bg-white border-slate-300 text-slate-800 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300'
             }`}
             title="Ver histórico de transferências"
           >
@@ -176,15 +180,41 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="font-mono text-[11px]">{historyCount}</span>
           </button>
 
+          {/* High-Contrast Theme Switcher Toggle */}
+          <button
+            onClick={toggleTheme}
+            className={`flex items-center justify-center p-2 rounded-lg border transition-all active:scale-95 shadow-sm ${
+              isDark
+                ? 'bg-slate-900 border-slate-800 text-amber-300 hover:text-amber-200 hover:border-amber-400/40 hover:bg-slate-800'
+                : 'bg-white border-slate-300 text-slate-700 hover:text-indigo-600 hover:border-indigo-400 hover:bg-slate-50'
+            }`}
+            title={
+              isDark
+                ? 'Alternar para tema claro de alto contraste'
+                : 'Alternar para modo escuro'
+            }
+            aria-label={
+              isDark
+                ? 'Alternar para tema claro de alto contraste'
+                : 'Alternar para modo escuro'
+            }
+          >
+            {isDark ? (
+              <Sun className="w-4 h-4 transition-transform hover:rotate-45" />
+            ) : (
+              <Moon className="w-4 h-4 transition-transform hover:-rotate-12" />
+            )}
+          </button>
+
           {/* Browser Notification Button */}
           <button
             onClick={onOpenNotificationModal}
-            className={`relative flex items-center justify-center p-2 rounded-lg border transition-all active:scale-95 ${
+            className={`relative flex items-center justify-center p-2 rounded-lg border transition-all active:scale-95 shadow-sm ${
               notificationPermission === 'granted'
-                ? 'bg-slate-900 border-indigo-500/40 text-indigo-400 hover:text-indigo-300 hover:border-indigo-400'
+                ? 'bg-indigo-50 border-indigo-300 text-indigo-700 hover:bg-indigo-100 dark:bg-slate-900 dark:border-indigo-500/40 dark:text-indigo-400 dark:hover:text-indigo-300 dark:hover:border-indigo-400'
                 : notificationPermission === 'denied'
-                ? 'bg-slate-900 border-rose-500/40 text-rose-400 hover:text-rose-300 hover:border-rose-400'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                ? 'bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100 dark:bg-slate-900 dark:border-rose-500/40 dark:text-rose-400 dark:hover:text-rose-300 dark:hover:border-rose-400'
+                : 'bg-white border-slate-300 text-slate-700 hover:border-slate-400 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:border-slate-700'
             }`}
             title={
               notificationPermission === 'granted'
@@ -200,17 +230,17 @@ export const Header: React.FC<HeaderProps> = ({
               <Bell className="w-4 h-4" />
             )}
             {notificationPermission === 'granted' && (
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-slate-950" />
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 ring-2 ring-white dark:ring-slate-950" />
             )}
             {notificationPermission === 'default' && (
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400 animate-pulse ring-2 ring-slate-950" />
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 dark:bg-amber-400 animate-pulse ring-2 ring-white dark:ring-slate-950" />
             )}
           </button>
 
           {/* QR Code Button */}
           <button
             onClick={onOpenQrModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600/90 hover:bg-indigo-600 text-white transition-all shadow-md shadow-indigo-600/20 active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-md shadow-indigo-600/20 active:scale-95"
             title="Gerar QR Code para conectar iPhone"
           >
             <QrCode className="w-4 h-4" />
@@ -221,20 +251,20 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Camera Scanner Button */}
           <button
             onClick={onOpenScannerModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 hover:text-white transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-slate-300 hover:border-slate-400 text-slate-800 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800 dark:hover:border-slate-700 dark:text-slate-200 dark:hover:text-white transition-all active:scale-95 shadow-sm dark:shadow-none"
             title="Escanear QR Code com a câmera"
           >
-            <Scan className="w-4 h-4 text-sky-400" />
+            <Scan className="w-4 h-4 text-sky-600 dark:text-sky-400" />
             <span className="hidden sm:inline">Escanear</span>
           </button>
 
           {/* Google Account Profile Button */}
           <button
             onClick={onOpenAuthModal}
-            className={`flex items-center gap-2 px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+            className={`flex items-center gap-2 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
               userAccount.isLoggedIn
-                ? 'bg-slate-900 border-indigo-500/40 text-slate-200 hover:border-indigo-500'
-                : 'bg-white text-slate-900 hover:bg-slate-100 border-transparent shadow-sm'
+                ? 'bg-white border-indigo-200 text-slate-800 hover:border-indigo-400 dark:bg-slate-900 dark:border-indigo-500/40 dark:text-slate-200 dark:hover:border-indigo-500 shadow-sm'
+                : 'bg-slate-900 text-white hover:bg-slate-800 border-slate-900 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 dark:border-transparent shadow-sm'
             }`}
           >
             {userAccount.isLoggedIn ? (
@@ -246,7 +276,7 @@ export const Header: React.FC<HeaderProps> = ({
                     className="w-5 h-5 rounded-full object-cover border border-indigo-400/30"
                   />
                 ) : (
-                  <div className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-bold">
+                  <div className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 flex items-center justify-center text-[10px] font-bold">
                     {userAccount.name.charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -282,3 +312,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+

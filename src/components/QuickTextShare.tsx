@@ -68,15 +68,15 @@ export const QuickTextShare: React.FC<QuickTextShareProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 sm:p-5">
+    <div className="bg-white dark:bg-slate-900/60 border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-none transition-colors">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-indigo-400" />
-          <h3 className="text-sm font-semibold text-white tracking-tight">
+          <MessageSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
             Área de Transferência & Links Rápidos
           </h3>
         </div>
-        <span className="text-[11px] text-slate-500">
+        <span className="text-[11px] text-slate-600 dark:text-slate-500 font-medium">
           Sincronização imediata iPhone & PC
         </span>
       </div>
@@ -88,12 +88,12 @@ export const QuickTextShare: React.FC<QuickTextShareProps> = ({
           value={inputText}
           onChange={e => setInputText(e.target.value)}
           placeholder="Cole um link, texto, código ou nota para enviar ao outro aparelho..."
-          className="flex-1 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors"
+          className="flex-1 bg-white dark:bg-slate-950/80 border border-slate-300 dark:border-slate-800 focus:border-indigo-600 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition-colors shadow-xs"
         />
         <button
           type="submit"
           disabled={!inputText.trim() || isSending}
-          className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+          className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
         >
           <Send className="w-3.5 h-3.5" />
           <span>Enviar</span>
@@ -108,18 +108,18 @@ export const QuickTextShare: React.FC<QuickTextShareProps> = ({
             return (
               <div
                 key={item.id}
-                className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-start justify-between gap-3 text-xs"
+                className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 flex items-start justify-between gap-3 text-xs shadow-xs"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mb-1">
-                    <span className="font-medium text-slate-300">
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 mb-1">
+                    <span className="font-semibold text-slate-800 dark:text-slate-300">
                       {item.senderName}
                     </span>
                     <span>·</span>
                     <span>{formatRelativeTime(item.createdAt)}</span>
                   </div>
 
-                  <p className="text-slate-100 break-words select-all">
+                  <p className="text-slate-900 dark:text-slate-100 break-words select-all font-medium">
                     {item.text}
                   </p>
 
@@ -128,7 +128,7 @@ export const QuickTextShare: React.FC<QuickTextShareProps> = ({
                       href={item.text}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-sky-400 hover:underline mt-1"
+                      className="inline-flex items-center gap-1 text-[11px] text-sky-600 dark:text-sky-400 hover:underline mt-1 font-semibold"
                     >
                       <ExternalLink className="w-3 h-3" />
                       <span>Abrir link</span>
@@ -138,11 +138,11 @@ export const QuickTextShare: React.FC<QuickTextShareProps> = ({
 
                 <button
                   onClick={() => handleCopy(item.text, item.id)}
-                  className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white shrink-0 transition-colors"
+                  className="p-1.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 hover:text-slate-900 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:border-transparent dark:text-slate-300 dark:hover:text-white shrink-0 transition-colors shadow-xs"
                   title="Copiar texto"
                 >
                   {copiedId === item.id ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   ) : (
                     <Copy className="w-3.5 h-3.5" />
                   )}
@@ -152,7 +152,7 @@ export const QuickTextShare: React.FC<QuickTextShareProps> = ({
           })}
         </div>
       ) : (
-        <p className="text-center py-4 text-xs text-slate-500">
+        <p className="text-center py-4 text-xs text-slate-600 dark:text-slate-500 font-medium">
           Nenhum texto compartilhado recentemente. Envie notas ou links rápidos acima!
         </p>
       )}

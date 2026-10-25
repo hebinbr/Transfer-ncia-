@@ -289,17 +289,17 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 sm:p-5">
+    <div className="bg-white dark:bg-slate-900/60 border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-none transition-colors">
       {/* Target indicator banner */}
-      <div className="flex items-center justify-between text-xs text-slate-400 mb-3 px-1">
-        <span className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+      <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-3 px-1">
+        <span className="flex items-center gap-1.5 font-medium">
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
           <span>Destino:</span>
-          <strong className="text-white">
+          <strong className="text-slate-900 dark:text-white font-bold">
             {targetPeerName ? targetPeerName : 'Todos os Dispositivos'}
           </strong>
         </span>
-        <span className="text-[11px] text-indigo-400 font-medium">
+        <span className="text-[11px] text-indigo-700 dark:text-indigo-400 font-semibold">
           Envio em lote e pacote unificado ativo
         </span>
       </div>
@@ -312,24 +312,24 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
         onClick={() => fileInputRef.current?.click()}
         className={`relative border-2 border-dashed rounded-2xl p-5 sm:p-7 text-center cursor-pointer transition-all ${
           isDragging
-            ? 'border-indigo-400 bg-indigo-500/10 scale-[1.01]'
-            : 'border-slate-800 hover:border-indigo-500/50 bg-slate-950/40 hover:bg-slate-950/60'
+            ? 'border-indigo-600 bg-indigo-50/70 dark:border-indigo-400 dark:bg-indigo-500/10 scale-[1.01]'
+            : 'border-slate-300 hover:border-indigo-500 bg-slate-50/70 hover:bg-slate-100/70 dark:border-slate-800 dark:hover:border-indigo-500/50 dark:bg-slate-950/40 dark:hover:bg-slate-950/60'
         }`}
       >
         <div className="flex flex-col items-center justify-center">
-          <div className="w-13 h-13 rounded-2xl bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mb-2.5 shadow-inner">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 dark:bg-indigo-600/10 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center mb-2.5 shadow-xs">
             <UploadCloud className="w-6 h-6" />
           </div>
 
-          <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight">
             Arraste múltiplos arquivos ou clique para selecionar
           </h3>
-          <p className="text-xs text-slate-400 mt-1 max-w-sm">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-sm font-medium">
             Selecione vários arquivos de uma só vez para enviá-los como um pacote organizado.
           </p>
 
-          <div className="mt-3 flex items-center gap-1.5 text-xs text-indigo-300 bg-indigo-950/60 border border-indigo-800/40 px-3 py-1 rounded-full">
-            <Package className="w-3.5 h-3.5" />
+          <div className="mt-3 flex items-center gap-1.5 text-xs text-indigo-800 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/40 px-3 py-1 rounded-full font-medium">
+            <Package className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
             <span>Suporta envio de pacotes com fotos, PDFs, vídeos e zips</span>
           </div>
         </div>
@@ -352,9 +352,9 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
             e.stopPropagation();
             cameraInputRef.current?.click();
           }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-1.5 p-2.5 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-200 transition-all text-xs font-medium active:scale-95"
+          className="flex flex-col sm:flex-row items-center justify-center gap-1.5 p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 hover:border-slate-400 text-slate-800 dark:bg-slate-950/80 dark:hover:bg-slate-800 dark:border-slate-800 dark:hover:border-slate-700 dark:text-slate-200 transition-all text-xs font-semibold active:scale-95 shadow-xs dark:shadow-none"
         >
-          <Camera className="w-4 h-4 text-emerald-400" />
+          <Camera className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span className="text-[11px] sm:text-xs">Tirar Foto</span>
         </button>
 
@@ -364,9 +364,9 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
             e.stopPropagation();
             photoLibraryInputRef.current?.click();
           }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-1.5 p-2.5 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-200 transition-all text-xs font-medium active:scale-95"
+          className="flex flex-col sm:flex-row items-center justify-center gap-1.5 p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 hover:border-slate-400 text-slate-800 dark:bg-slate-950/80 dark:hover:bg-slate-800 dark:border-slate-800 dark:hover:border-slate-700 dark:text-slate-200 transition-all text-xs font-semibold active:scale-95 shadow-xs dark:shadow-none"
         >
-          <Image className="w-4 h-4 text-sky-400" />
+          <Image className="w-4 h-4 text-sky-600 dark:text-sky-400" />
           <span className="text-[11px] sm:text-xs">Fototeca iPhone</span>
         </button>
 
@@ -376,9 +376,9 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
             e.stopPropagation();
             fileInputRef.current?.click();
           }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-1.5 p-2.5 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-200 transition-all text-xs font-medium active:scale-95"
+          className="flex flex-col sm:flex-row items-center justify-center gap-1.5 p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 hover:border-slate-400 text-slate-800 dark:bg-slate-950/80 dark:hover:bg-slate-800 dark:border-slate-800 dark:hover:border-slate-700 dark:text-slate-200 transition-all text-xs font-semibold active:scale-95 shadow-xs dark:shadow-none"
         >
-          <FileText className="w-4 h-4 text-indigo-400" />
+          <FileText className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
           <span className="text-[11px] sm:text-xs">Mais Arquivos</span>
         </button>
 
@@ -402,14 +402,14 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 
       {/* Multi-File Staging Queue & Package Builder */}
       {stagedFiles.length > 0 && (
-        <div className="mt-4 p-4 rounded-xl bg-slate-950/90 border border-indigo-500/40 space-y-3.5 shadow-lg shadow-indigo-950/20">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+        <div className="mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-950/90 border border-indigo-200 dark:border-indigo-500/40 space-y-3.5 shadow-sm dark:shadow-indigo-950/20">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800/80 pb-2.5">
             <div className="flex items-center gap-2">
-              <Package className="w-4 h-4 text-indigo-400" />
-              <h4 className="text-xs font-bold text-white tracking-tight">
+              <Package className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">
                 Pacote de Arquivos para Envio ({stagedFiles.length})
               </h4>
-              <span className="text-xs font-mono text-slate-400">
+              <span className="text-xs font-mono text-slate-600 dark:text-slate-400 font-medium">
                 · {formatBytes(totalStagedSize)}
               </span>
             </div>
@@ -417,7 +417,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
             <button
               onClick={clearStagedFiles}
               disabled={isUploading}
-              className="text-[11px] text-slate-400 hover:text-rose-400 transition-colors flex items-center gap-1"
+              className="text-[11px] text-slate-600 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition-colors flex items-center gap-1 font-medium"
             >
               <Trash2 className="w-3 h-3" />
               <span>Limpar fila</span>
@@ -427,7 +427,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
           {/* Package Configuration */}
           <div className="space-y-2">
             <div>
-              <label className="block text-[11px] font-medium text-slate-400 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-400 mb-1">
                 Nome do Pacote (opcional)
               </label>
               <input
@@ -436,38 +436,37 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
                 value={customPackageName}
                 onChange={e => setCustomPackageName(e.target.value)}
                 placeholder={`Ex: Pacote de Fotos e Documentos (${stagedFiles.length} arquivos)`}
-                className="w-full bg-slate-900 border border-slate-700 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-colors"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:border-indigo-600 rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition-colors shadow-xs"
               />
             </div>
 
-            <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
+            <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none font-medium">
               <input
                 type="checkbox"
                 disabled={isUploading}
                 checked={asSinglePackage}
                 onChange={e => setAsSinglePackage(e.target.checked)}
-                className="rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
+                className="rounded text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
               />
               <span>
-                Agrupar e disponibilizar download de todos em arquivo único <strong className="text-indigo-300">.ZIP</strong>
+                Agrupar e disponibilizar download de todos em arquivo único <strong className="text-indigo-600 dark:text-indigo-300 font-bold">.ZIP</strong>
               </span>
             </label>
           </div>
 
           {/* Staged Files List (in sequential order) */}
-          <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 divide-y divide-slate-900/60">
+          <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 divide-y divide-slate-200 dark:divide-slate-900/60">
             {stagedFiles.map((file, idx) => {
-              const { category } = getFileCategory(file.type, file.name);
               return (
                 <div
                   key={`${file.name}-${idx}`}
                   className="pt-1.5 first:pt-0 flex items-center justify-between gap-2 text-xs"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-mono text-[10px] text-indigo-400 font-bold w-5 shrink-0">
+                    <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 font-bold w-5 shrink-0">
                       #{idx + 1}
                     </span>
-                    <span className="text-slate-200 truncate max-w-[200px] sm:max-w-xs" title={file.name}>
+                    <span className="text-slate-800 dark:text-slate-200 truncate max-w-[200px] sm:max-w-xs font-medium" title={file.name}>
                       {file.name}
                     </span>
                     <span className="text-slate-500 font-mono text-[11px] shrink-0">
@@ -478,7 +477,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
                   {!isUploading && (
                     <button
                       onClick={() => removeStagedFile(idx)}
-                      className="p-1 text-slate-500 hover:text-rose-400 rounded transition-colors"
+                      className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded transition-colors"
                       title="Remover arquivo do pacote"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -490,12 +489,12 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
           </div>
 
           {/* Upload Action Button */}
-          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between gap-2">
             <button
               type="button"
               disabled={isUploading}
               onClick={() => fileInputRef.current?.click()}
-              className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
+              className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Adicionar Mais</span>
@@ -505,7 +504,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
               type="button"
               disabled={isUploading}
               onClick={handleSendStagedFiles}
-              className="flex-1 max-w-xs py-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-600/20 active:scale-98"
+              className="flex-1 max-w-xs py-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-600/20 active:scale-98"
             >
               {isUploading ? (
                 <>
@@ -527,15 +526,15 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 
       {/* Active Transfer Progress Bars */}
       {isUploading && (
-        <div className="mt-4 p-3 rounded-xl bg-slate-950/80 border border-indigo-500/30 space-y-2">
+        <div className="mt-4 p-3 rounded-xl bg-indigo-50/70 dark:bg-slate-950/80 border border-indigo-200 dark:border-indigo-500/30 space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-indigo-300 font-medium">{uploadStatusText}</span>
-            <span className="font-mono text-white font-bold">{uploadPercent}%</span>
+            <span className="text-indigo-800 dark:text-indigo-300 font-semibold">{uploadStatusText}</span>
+            <span className="font-mono text-slate-900 dark:text-white font-bold">{uploadPercent}%</span>
           </div>
 
-          <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-indigo-500 to-sky-400 transition-all duration-200"
+              className="h-full bg-gradient-to-r from-indigo-600 to-sky-500 dark:from-indigo-500 dark:to-sky-400 transition-all duration-200"
               style={{ width: `${uploadPercent}%` }}
             />
           </div>

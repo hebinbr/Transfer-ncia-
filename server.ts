@@ -390,6 +390,15 @@ app.get('/api/download/:fileId', (req: Request, res: Response) => {
   const disposition = req.query.inline === 'true' ? 'inline' : 'attachment';
 
   res.setHeader('Content-Type', file.mimetype);
+  try {
+    const stats = fs.statSync(file.storedPath);
+    res.setHeader('Content-Length', stats.size.toString());
+  } catch {
+    if (file.size) {
+      res.setHeader('Content-Length', file.size.toString());
+    }
+  }
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Length');
   res.setHeader(
     'Content-Disposition',
     `${disposition}; filename*=UTF-8''${encodeURIComponent(file.filename)}`
