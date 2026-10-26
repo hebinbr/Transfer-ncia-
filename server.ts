@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
@@ -144,7 +145,7 @@ setInterval(() => {
   }
 }, 30 * 60 * 1000);
 
-// API: Configuration endpoint for QR code pairing URLs
+// API: Configuration endpoint for QR code pairing URLs & Local IP detection
 app.get('/api/config', (req: Request, res: Response) => {
   const host = req.headers['x-forwarded-host'] || req.headers.host || '';
   const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
@@ -153,12 +154,32 @@ app.get('/api/config', (req: Request, res: Response) => {
   const sharedUrl = 'https://ais-pre-3osiqoney2doeixxvcqgom-538328217497.us-east1.run.app';
   const devUrl = 'https://ais-dev-3osiqoney2doeixxvcqgom-538328217497.us-east1.run.app';
 
+  const interfaces = os.networkInterfaces();
+  const localIps: string[] = [];
+
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name] || []) {
+      if (net.family === 'IPv4' && !net.internal) {
+        localIps.push(net.address);
+      }
+    }
+  }
+
+  // Common Android Hotspot IP is 192.168.43.1
+  const primaryIp = localIps.find(ip => ip.startsWith('192.168.43.')) || localIps[0] || '192.168.43.1';
+
   res.json({
     appUrl,
     detectedUrl,
     sharedUrl,
     devUrl,
     userEmail: 'contosf47@gmail.com',
+    port: PORT,
+    localIps,
+    primaryIp,
+    directUrl: `http://${primaryIp}:${PORT}`,
+    androidHotspotIp: '192.168.43.1',
+    androidHotspotUrl: `http://192.168.43.1:${PORT}`,
   });
 });
 
@@ -522,6 +543,26 @@ app.post('/api/share-text', (req: Request, res: Response) => {
 
   broadcastToRoom(room, 'text-added', { item: textItem });
   res.json({ success: true, item: textItem });
+});
+
+app.get('/api/network-info', (_req: Request, res: Response) => {
+  const interfaces = os.networkInterfaces();
+  const localIps: string[] = [];
+
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name] || []) {
+      if (net.family === 'IPv4' && !net.internal) {
+        localIps.push(net.address);
+      }
+    }
+  }
+
+  res.json({
+    localIps,
+    androidHotspotIp: '192.168.43.1',
+    port: PORT,
+    connectedDevicesCount: sseClients.size,
+  });
 });
 
 // Setup Vite or static serving

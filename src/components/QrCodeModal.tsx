@@ -34,13 +34,17 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [includeAccount, setIncludeAccount] = useState(true);
   const [connectionMode, setConnectionMode] = useState<'cloud' | 'local'>('cloud');
-  const [localIp, setLocalIp] = useState<string>('192.168.1.100:3000');
+  const [localIp, setLocalIp] = useState<string>('192.168.43.1:3000');
   const [show403Help, setShow403Help] = useState(true);
   const [serverConfig, setServerConfig] = useState<{
-    appUrl: string;
-    sharedUrl: string;
-    devUrl: string;
-    userEmail: string;
+    appUrl?: string;
+    sharedUrl?: string;
+    devUrl?: string;
+    userEmail?: string;
+    localIps?: string[];
+    primaryIp?: string;
+    androidHotspotIp?: string;
+    port?: number;
   } | null>(null);
 
   // Fetch server config on open
@@ -49,7 +53,14 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
 
     fetch('/api/config')
       .then(res => res.json())
-      .then(data => setServerConfig(data))
+      .then(data => {
+        setServerConfig(data);
+        if (data.primaryIp && data.primaryIp !== '127.0.0.1') {
+          setLocalIp(`${data.primaryIp}:${data.port || 3000}`);
+        } else if (data.androidHotspotIp) {
+          setLocalIp(`${data.androidHotspotIp}:${data.port || 3000}`);
+        }
+      })
       .catch(err => console.warn('Could not fetch server config:', err));
   }, [isOpen]);
 
@@ -209,21 +220,46 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({
             </button>
           </div>
 
-          {/* Local IP manual override */}
+          {/* Local IP manual override & presets */}
           {connectionMode === 'local' && (
-            <div className="mt-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs space-y-1.5">
-              <label className="text-[11px] text-slate-700 dark:text-slate-400 block font-semibold">
-                Digite o IP do seu Computador na rede Wi-Fi (porta :3000):
-              </label>
+            <div className="mt-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] text-slate-700 dark:text-slate-400 font-semibold">
+                  IP para Conexão Direta (porta :3000):
+                </label>
+                <span className="text-[10px] text-slate-500 font-medium">1-clique para preencher:</span>
+              </div>
+
+              {/* Android Hotspot & Local LAN IP Quick Presets */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setLocalIp('192.168.43.1:3000')}
+                  className="px-2 py-1 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-900 dark:bg-emerald-950/80 dark:hover:bg-emerald-900/80 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700 font-mono text-[10px] font-bold flex items-center gap-1 transition-colors"
+                >
+                  <span>🤖 Hotspot Android (192.168.43.1)</span>
+                </button>
+
+                {serverConfig?.primaryIp && serverConfig.primaryIp !== '192.168.43.1' && (
+                  <button
+                    type="button"
+                    onClick={() => setLocalIp(`${serverConfig.primaryIp}:${serverConfig.port || 3000}`)}
+                    className="px-2 py-1 rounded-md bg-slate-200 hover:bg-slate-300 text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-mono text-[10px] font-bold flex items-center gap-1 transition-colors"
+                  >
+                    <span>💻 IP Wi-Fi ({serverConfig.primaryIp})</span>
+                  </button>
+                )}
+              </div>
+
               <input
                 type="text"
                 value={localIp}
                 onChange={e => setLocalIp(e.target.value)}
-                placeholder="192.168.1.15:3000"
+                placeholder="192.168.43.1:3000"
                 className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:border-indigo-500 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-white font-mono outline-none"
               />
               <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
-                Exemplo: 192.168.0.25:3000. O celular conecta direto na mesma rede local sem passar pelo login do Google.
+                No Android com Ponto de Acesso ativado, use <strong>192.168.43.1:3000</strong>. Os aparelhos conectam sem precisar de internet ou login do Google.
               </span>
             </div>
           )}

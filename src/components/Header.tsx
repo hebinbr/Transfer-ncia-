@@ -13,6 +13,7 @@ import {
   BellOff,
   Sun,
   Moon,
+  Keyboard,
 } from 'lucide-react';
 import { UserAccount, DevicePeer } from '../types';
 import { NotificationPermissionState } from '../utils/notificationManager';
@@ -36,6 +37,7 @@ interface HeaderProps {
   onOpenScannerModal: () => void;
   onOpenAuthModal: () => void;
   onSwitchRoom: () => void;
+  onOpenShortcutsModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -52,6 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenScannerModal,
   onOpenAuthModal,
   onSwitchRoom,
+  onOpenShortcutsModal,
 }) => {
   const { isDark, toggleTheme } = useTheme();
   const [copied, setCopied] = React.useState(false);
@@ -111,6 +114,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
             <button
               onClick={() => onTabChange('history')}
+              title="Ver Histórico de Transferências (Atalho: Ctrl+H / Cmd+H)"
               className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-colors ${
                 activeTab === 'history'
                   ? 'bg-indigo-600 text-white shadow-sm font-semibold'
@@ -252,11 +256,30 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenScannerModal}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-slate-300 hover:border-slate-400 text-slate-800 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800 dark:hover:border-slate-700 dark:text-slate-200 dark:hover:text-white transition-all active:scale-95 shadow-sm dark:shadow-none"
-            title="Escanear QR Code com a câmera"
+            title="Escanear QR Code com a câmera (Atalho: Ctrl+K / Cmd+K)"
           >
             <Scan className="w-4 h-4 text-sky-600 dark:text-sky-400" />
             <span className="hidden sm:inline">Escanear</span>
+            <kbd className="hidden lg:inline px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-[9px] text-slate-600 dark:text-slate-400 font-bold">
+              Ctrl+K
+            </kbd>
           </button>
+
+          {/* Keyboard Shortcuts Button */}
+          {onOpenShortcutsModal && (
+            <button
+              onClick={onOpenShortcutsModal}
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-medium rounded-lg bg-white border border-slate-300 hover:border-slate-400 text-slate-700 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800 dark:hover:border-slate-700 dark:text-slate-300 dark:hover:text-white transition-all active:scale-95 shadow-sm dark:shadow-none"
+              title="Atalhos de Teclado (Pressione ? ou Ctrl+/)"
+              aria-label="Atalhos de Teclado"
+            >
+              <Keyboard className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span className="hidden xl:inline text-xs font-semibold">Atalhos</span>
+              <kbd className="hidden sm:inline-block px-1 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400">
+                ?
+              </kbd>
+            </button>
+          )}
 
           {/* Google Account Profile Button */}
           <button

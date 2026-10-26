@@ -1,5 +1,18 @@
-import React from 'react';
-import { Smartphone, Laptop, Monitor, Wifi, Radio, Send, CheckCircle2, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  Smartphone,
+  Laptop,
+  Monitor,
+  Wifi,
+  Radio,
+  Send,
+  CheckCircle2,
+  User,
+  Copy,
+  Check,
+  QrCode,
+  Sparkles,
+} from 'lucide-react';
 import { DevicePeer } from '../types';
 
 interface PeerRadarProps {
@@ -17,8 +30,38 @@ export const PeerRadar: React.FC<PeerRadarProps> = ({
   onSelectTarget,
   onOpenQrModal,
 }) => {
+  const [copiedIp, setCopiedIp] = useState(false);
+  const [serverConfig, setServerConfig] = useState<{
+    localIps?: string[];
+    primaryIp?: string;
+    androidHotspotIp?: string;
+    port?: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(data => setServerConfig(data))
+      .catch(() => {});
+  }, []);
+
   const otherPeers = peers.filter(p => p.id !== currentPeerId);
   const currentPeer = peers.find(p => p.id === currentPeerId);
+
+  const hasAndroidPeer = peers.some(p => p.platform === 'Android');
+  const isCurrentAndroid = currentPeer?.platform === 'Android';
+  const isAndroidConnected = hasAndroidPeer || isCurrentAndroid;
+
+  const androidTargetIp =
+    serverConfig?.primaryIp && serverConfig.primaryIp !== '127.0.0.1'
+      ? `${serverConfig.primaryIp}:${serverConfig.port || 3000}`
+      : '192.168.43.1:3000';
+
+  const handleCopyIp = () => {
+    navigator.clipboard.writeText(`http://${androidTargetIp}`);
+    setCopiedIp(true);
+    setTimeout(() => setCopiedIp(false), 2000);
+  };
 
   const getDeviceIcon = (peer: DevicePeer) => {
     if (peer.type === 'mobile') {
@@ -170,6 +213,48 @@ export const PeerRadar: React.FC<PeerRadarProps> = ({
           </div>
         )}
       </div>
+
+      {/* Android Connected Direct IP Banner */}
+      {isAndroidConnected && (
+        <div className="mt-3.5 p-3 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-950/30 border border-emerald-300 dark:border-emerald-700/60 text-xs shadow-xs transition-colors">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                🤖
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-bold text-slate-900 dark:text-emerald-100">
+                    Android Conectado
+                  </span>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 px-1.5 py-0.2 rounded font-semibold">
+                    IP de Conexão Direta
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-emerald-300/90 font-medium">
+                  Conexão via Wi-Fi local ou Roteador Hotspot do Android para transferências de alta velocidade:
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+              <div className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 font-mono text-xs font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5 shadow-xs">
+                <Wifi className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>{androidTargetIp}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyIp}
+                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 transition-all shadow-xs active:scale-95"
+                title="Copiar URL completa com IP"
+              >
+                {copiedIp ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedIp ? 'Copiado!' : 'Copiar IP'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

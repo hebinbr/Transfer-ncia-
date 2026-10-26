@@ -10,6 +10,10 @@ import {
   ExternalLink,
   Sparkles,
   Timer,
+  Volume2,
+  VolumeX,
+  Play,
+  Music,
 } from 'lucide-react';
 import {
   NotificationPermissionState,
@@ -18,6 +22,13 @@ import {
   sendTestNotification,
   isTabInBackground,
 } from '../utils/notificationManager';
+import {
+  getChimeSound,
+  setChimeSound,
+  playChime,
+  CHIME_OPTIONS,
+  ChimeSoundType,
+} from '../utils/chimeManager';
 
 interface NotificationModalProps {
   isOpen: boolean;
@@ -34,6 +45,27 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
 }) => {
   const [testSent, setTestSent] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [selectedChime, setSelectedChime] = useState<ChimeSoundType>(() => getChimeSound());
+  const [playingChimeId, setPlayingChimeId] = useState<string | null>(null);
+
+  const handleSelectChime = (sound: ChimeSoundType) => {
+    setSelectedChime(sound);
+    setChimeSound(sound);
+    if (sound !== 'none') {
+      setPlayingChimeId(sound);
+      playChime(sound);
+      setTimeout(() => setPlayingChimeId(null), 700);
+    }
+  };
+
+  const handlePreviewSound = (e: React.MouseEvent, sound: ChimeSoundType) => {
+    e.stopPropagation();
+    if (sound !== 'none') {
+      setPlayingChimeId(sound);
+      playChime(sound);
+      setTimeout(() => setPlayingChimeId(null), 700);
+    }
+  };
 
   useEffect(() => {
     let timer: any;
@@ -42,14 +74,15 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
         setCountdown(countdown - 1);
       }, 1000);
     } else if (countdown === 0) {
-      // Send test notification after countdown
+      // Send test notification after countdown and play chosen chime
+      playChime(selectedChime);
       sendTestNotification();
       setTestSent(true);
       setCountdown(null);
       setTimeout(() => setTestSent(false), 5000);
     }
     return () => clearTimeout(timer);
-  }, [countdown]);
+  }, [countdown, selectedChime]);
 
   if (!isOpen) return null;
 
@@ -57,6 +90,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
     const result = await requestNotificationPermission();
     onPermissionChange(result);
     if (result === 'granted') {
+      playChime(selectedChime);
       sendTestNotification();
       setTestSent(true);
       setTimeout(() => setTestSent(false), 4000);
@@ -64,6 +98,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   };
 
   const handleImmediateTest = () => {
+    playChime(selectedChime);
     sendTestNotification();
     setTestSent(true);
     setTimeout(() => setTestSent(false), 4000);
@@ -75,7 +110,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden p-6 text-slate-900 dark:text-slate-100 transition-colors">
+      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden p-5 sm:p-6 text-slate-900 dark:text-slate-100 transition-colors max-h-[92vh] overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -137,6 +172,98 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
             {permissionState === 'unsupported' &&
               'Este navegador ou dispositivo não possui suporte nativo à Notification API.'}
           </p>
+        </div>
+
+        {/* Chime Sound Preference Section */}
+        <div className="mb-5 p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 shadow-xs">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                {selectedChime === 'none' ? <VolumeX className="w-4 h-4 text-rose-500" /> : <Volume2 className="w-4 h-4" />}
+              </div>
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 block">
+                  Tom de Notificação (Chime)
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Som reproduzido ao receber arquivos e pacotes
+                </span>
+              </div>
+            </div>
+            <span className="text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold px-2 py-0.5 rounded">
+              localStorage
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-1.5">
+            {CHIME_OPTIONS.map(opt => {
+              const isSelected = selectedChime === opt.id;
+              const isPlaying = playingChimeId === opt.id;
+              return (
+                <div
+                  key={opt.id}
+                  onClick={() => handleSelectChime(opt.id)}
+                  className={`flex items-center justify-between p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                    isSelected
+                      ? 'bg-indigo-50/90 dark:bg-indigo-950/60 border-indigo-400 dark:border-indigo-500 text-slate-900 dark:text-white shadow-xs ring-1 ring-indigo-400/30'
+                      : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                        isSelected
+                          ? 'border-indigo-600 bg-indigo-600'
+                          : 'border-slate-300 dark:border-slate-600'
+                      }`}
+                    >
+                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold flex items-center gap-1.5">
+                        <span>{opt.name}</span>
+                        {opt.id === 'none' && (
+                          <span className="text-[10px] text-rose-500 font-bold bg-rose-50 dark:bg-rose-950/50 px-1.5 py-0.2 rounded">
+                            Silencioso
+                          </span>
+                        )}
+                        {isSelected && opt.id !== 'none' && (
+                          <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                            (Ativo)
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                        {opt.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  {opt.id !== 'none' ? (
+                    <button
+                      type="button"
+                      onClick={e => handlePreviewSound(e, opt.id)}
+                      className={`p-1.5 px-2.5 rounded-lg border text-xs flex items-center gap-1 shrink-0 transition-all active:scale-95 ${
+                        isPlaying
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                          : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200'
+                      }`}
+                      title={`Tocar prévia de ${opt.name}`}
+                    >
+                      <Play className={`w-3 h-3 ${isPlaying ? 'fill-current animate-pulse text-white' : 'text-indigo-600 dark:text-indigo-400'}`} />
+                      <span className="text-[11px] font-bold">
+                        {isPlaying ? 'Tocando...' : 'Ouvir'}
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="p-1.5 text-slate-400">
+                      <VolumeX className="w-4 h-4" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Feature Explanations */}

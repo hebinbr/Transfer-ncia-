@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   UploadCloud,
   Camera,
@@ -69,6 +69,20 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const photoLibraryInputRef = useRef<HTMLInputElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Listen to global keyboard shortcut (Ctrl+U / Cmd+U)
+  useEffect(() => {
+    const handleTriggerUpload = () => {
+      containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      fileInputRef.current?.click();
+    };
+
+    window.addEventListener('airshare:trigger-upload', handleTriggerUpload);
+    return () => {
+      window.removeEventListener('airshare:trigger-upload', handleTriggerUpload);
+    };
+  }, []);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -292,7 +306,10 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900/60 border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-none transition-colors">
+    <div
+      ref={containerRef}
+      className="bg-white dark:bg-slate-900/60 border border-slate-300 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-none transition-colors"
+    >
       {/* Target indicator banner */}
       <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-3 px-1">
         <span className="flex items-center gap-1.5 font-medium">
@@ -302,8 +319,11 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
             {targetPeerName ? targetPeerName : 'Todos os Dispositivos'}
           </strong>
         </span>
-        <span className="text-[11px] text-indigo-700 dark:text-indigo-400 font-semibold">
-          Envio em lote e pacote unificado ativo
+        <span className="text-[11px] text-indigo-700 dark:text-indigo-400 font-semibold flex items-center gap-1">
+          <span>Atalho:</span>
+          <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300">
+            Ctrl+U
+          </kbd>
         </span>
       </div>
 
@@ -327,8 +347,11 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
           <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight">
             Arraste múltiplos arquivos ou clique para selecionar
           </h3>
-          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-sm font-medium">
-            Selecione vários arquivos de uma só vez para enviá-los como um pacote organizado.
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-sm font-medium flex items-center justify-center gap-1 flex-wrap">
+            <span>Selecione vários arquivos de uma só vez ou use o atalho</span>
+            <kbd className="px-1.5 py-0.2 rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-mono text-[10px] font-bold text-slate-800 dark:text-slate-200 shadow-xs">
+              Ctrl+U
+            </kbd>
           </p>
 
           <div className="mt-3 flex items-center gap-1.5 text-xs text-indigo-800 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/40 px-3 py-1 rounded-full font-medium">

@@ -18,6 +18,7 @@ import {
   Loader2,
   Database,
   WifiOff,
+  Keyboard,
 } from 'lucide-react';
 import { isIOS, saveToIOSFiles, saveZipPackageToIOS, triggerHapticFeedback } from './utils/iosFileSaver';
 import {
@@ -41,6 +42,9 @@ import { GoogleAuthModal } from './components/GoogleAuthModal';
 import { FilePreviewModal } from './components/FilePreviewModal';
 import { NotificationModal } from './components/NotificationModal';
 import { NotificationBanner } from './components/NotificationBanner';
+import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useTheme } from './context/ThemeContext';
 import {
   NotificationPermissionState,
   getNotificationPermission,
@@ -48,6 +52,7 @@ import {
   notifyReceivedPackage,
   sendBackgroundNotification,
 } from './utils/notificationManager';
+import { playChime } from './utils/chimeManager';
 import {
   detectDevice,
   getOrCreateDeviceId,
@@ -151,6 +156,63 @@ export default function App() {
   const [previewFile, setPreviewFile] = useState<SharedFileItem | null>(null);
   const [isSwitchRoomOpen, setIsSwitchRoomOpen] = useState(false);
   const [customRoomInput, setCustomRoomInput] = useState('');
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const { toggleTheme } = useTheme();
+
+  const handleTriggerUpload = () => {
+    setActiveTab('transfer');
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('airshare:trigger-upload'));
+    }, 60);
+  };
+
+  const handleCloseTopModal = () => {
+    if (isShortcutsModalOpen) {
+      setIsShortcutsModalOpen(false);
+      return;
+    }
+    if (isScannerModalOpen) {
+      setIsScannerModalOpen(false);
+      return;
+    }
+    if (isQrModalOpen) {
+      setIsQrModalOpen(false);
+      return;
+    }
+    if (isAuthModalOpen) {
+      setIsAuthModalOpen(false);
+      return;
+    }
+    if (previewFile) {
+      setPreviewFile(null);
+      return;
+    }
+    if (isSwitchRoomOpen) {
+      setIsSwitchRoomOpen(false);
+      return;
+    }
+    if (isNotificationModalOpen) {
+      setIsNotificationModalOpen(false);
+      return;
+    }
+    if (receivedAlert) {
+      setReceivedAlert(null);
+      return;
+    }
+  };
+
+  const { activeToast } = useKeyboardShortcuts({
+    onOpenScanner: () => setIsScannerModalOpen(prev => !prev),
+    onToggleHistory: () => setActiveTab(prev => (prev === 'history' ? 'transfer' : 'history')),
+    onTriggerUpload: handleTriggerUpload,
+    onToggleShortcuts: () => setIsShortcutsModalOpen(prev => !prev),
+    onOpenQrModal: () => setIsQrModalOpen(true),
+    onOpenRoomModal: () => {
+      setCustomRoomInput(roomCode);
+      setIsSwitchRoomOpen(true);
+    },
+    onCloseModals: handleCloseTopModal,
+  });
 
   // Notification API state
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionState>(() =>
@@ -609,6 +671,7 @@ export default function App() {
           setCustomRoomInput(roomCode);
           setIsSwitchRoomOpen(true);
         }}
+        onOpenShortcutsModal={() => setIsShortcutsModalOpen(true)}
       />
 
       {/* Gentle Banner for Browser Notification Permission */}
@@ -1046,6 +1109,39 @@ export default function App() {
         permissionState={notificationPermission}
         onPermissionChange={setNotificationPermission}
       />
+
+      {/* Keyboard Shortcuts Cheatsheet Modal */}
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsModalOpen}
+        onClose={() => setIsShortcutsModalOpen(false)}
+        onOpenScanner={() => setIsScannerModalOpen(true)}
+        onToggleHistory={() => setActiveTab(prev => (prev === 'history' ? 'transfer' : 'history'))}
+        onTriggerUpload={handleTriggerUpload}
+        onOpenQrModal={() => setIsQrModalOpen(true)}
+        onOpenRoomModal={() => {
+          setCustomRoomInput(roomCode);
+          setIsSwitchRoomOpen(true);
+        }}
+        onToggleTheme={toggleTheme}
+        onOpenNotifications={() => setIsNotificationModalOpen(true)}
+      />
+
+      {/* Floating Keyboard Shortcut Trigger Notification Toast */}
+      {activeToast && (
+        <aside
+          role="status"
+          aria-live="polite"
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-slide-down pointer-events-none"
+        >
+          <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-slate-950/90 dark:bg-white/95 text-white dark:text-slate-900 text-xs font-semibold shadow-2xl border border-slate-700/60 dark:border-slate-300 backdrop-blur-md">
+            <Keyboard className="w-4 h-4 text-indigo-400 dark:text-indigo-600 shrink-0" />
+            <kbd className="px-1.5 py-0.5 rounded bg-slate-800 dark:bg-slate-200 text-indigo-300 dark:text-indigo-700 font-mono text-[11px] font-bold border border-slate-700 dark:border-slate-300 shadow-xs">
+              {activeToast.key}
+            </kbd>
+            <span className="font-bold">{activeToast.label}</span>
+          </div>
+        </aside>
+      )}
     </div>
   );
 }
